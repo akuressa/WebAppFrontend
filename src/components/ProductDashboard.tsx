@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../store/store';
-import { getProducts, setSearchTerm, setCategory, setPriceRange, setSortBy, clearFilters } from '../store/productSlice';
+import { getProducts, setSearchTerm, setCategory, setPriceRange, setSortBy, clearFilters, setCurrentPage } from '../store/productSlice';
 import {
   selectFilteredAndSortedProducts,
+  selectPaginatedProducts,
+  selectTotalPages,
   selectUniqueCategories,
   selectPriceRange,
 } from '../store/productSelectors';
@@ -11,10 +13,12 @@ import ProductCard from './ProductCard';
 
 const ProductDashboard: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const products = useSelector(selectFilteredAndSortedProducts);
+  const allProducts = useSelector(selectFilteredAndSortedProducts);
+  const products = useSelector(selectPaginatedProducts);
+  const totalPages = useSelector(selectTotalPages);
   const categories = useSelector(selectUniqueCategories);
   const priceRange = useSelector(selectPriceRange);
-  const { loading, error, filters } = useSelector((state: RootState) => state.products);
+  const { loading, error, filters, pagination } = useSelector((state: RootState) => state.products);
 
   // Local state for filter values (not applied until Apply button is clicked)
   const [localCategory, setLocalCategory] = useState<string>('');
@@ -149,7 +153,8 @@ const ProductDashboard: React.FC = () => {
             Product Dashboard
           </h1>
           <p className="text-gray-600">
-            Showing {products.length} product{products.length !== 1 ? 's' : ''}
+            Showing {allProducts.length} product{allProducts.length !== 1 ? 's' : ''}
+            {totalPages > 1 && ` (Page ${pagination.currentPage} of ${totalPages})`}
           </p>
         </div>
 
@@ -338,7 +343,7 @@ const ProductDashboard: React.FC = () => {
         </div>
 
         {/* Products Grid */}
-        {products.length === 0 ? (
+        {allProducts.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-lg shadow-md">
             <p className="text-gray-600 text-lg">No products found matching your filters.</p>
             {hasActiveFilters && (
@@ -351,11 +356,106 @@ const ProductDashboard: React.FC = () => {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {products.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+              {products.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="mt-8 flex justify-center items-center gap-2">
+                <button
+                  onClick={() => dispatch(setCurrentPage(pagination.currentPage - 1))}
+                  disabled={pagination.currentPage === 1}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    pagination.currentPage === 1
+                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  Previous
+                </button>
+
+                <div className="flex gap-1">
+                  {(() => {
+                    const pages: (number | string)[] = [];
+                    const current = pagination.currentPage;
+                    const total = totalPages;
+
+                    if (total <= 7) {
+                      // Show all pages if 7 or fewer
+                      for (let i = 1; i <= total; i++) {
+                        pages.push(i);
+                      }
+                    } else {
+                      // Always show first page
+                      pages.push(1);
+
+                      if (current > 3) {
+                        pages.push('...');
+                      }
+
+                      // Show pages around current
+                      const start = Math.max(2, current - 1);
+                      const end = Math.min(total - 1, current + 1);
+
+                      for (let i = start; i <= end; i++) {
+                        if (i !== 1 && i !== total) {
+                          pages.push(i);
+                        }
+                      }
+
+                      if (current < total - 2) {
+                        pages.push('...');
+                      }
+
+                      // Always show last page
+                      if (total > 1) {
+                        pages.push(total);
+                      }
+                    }
+
+                    return pages.map((page, index) => {
+                      if (page === '...') {
+                        return (
+                          <span key={`ellipsis-${index}`} className="px-2 text-gray-500">
+                            ...
+                          </span>
+                        );
+                      }
+                      return (
+                        <button
+                          key={page}
+                          onClick={() => dispatch(setCurrentPage(page as number))}
+                          className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                            pagination.currentPage === page
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                          }`}
+                        >
+                          {page}
+                        </button>
+                      );
+                    });
+                  })()}
+                </div>
+
+                <button
+                  onClick={() => dispatch(setCurrentPage(pagination.currentPage + 1))}
+                  disabled={pagination.currentPage === totalPages}
+                  className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                    pagination.currentPage === totalPages
+                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

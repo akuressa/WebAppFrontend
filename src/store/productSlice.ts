@@ -13,6 +13,10 @@ const initialState: ProductState = {
     maxPrice: null,
     sortBy: 'name',
   },
+  pagination: {
+    currentPage: 1,
+    itemsPerPage: 15,
+  },
 };
 
 export const getProducts = createAsyncThunk(
@@ -33,18 +37,22 @@ const productSlice = createSlice({
   name: 'products',
   initialState,
   reducers: {
-    setSearchTerm: (state, action: PayloadAction<string>) => {
-      state.filters.searchTerm = action.payload;
-    },
     setCategory: (state, action: PayloadAction<string>) => {
       state.filters.category = action.payload;
+      state.pagination.currentPage = 1;
     },
     setPriceRange: (state, action: PayloadAction<{ min: number | null; max: number | null }>) => {
       state.filters.minPrice = action.payload.min;
       state.filters.maxPrice = action.payload.max;
+      state.pagination.currentPage = 1;
     },
     setSortBy: (state, action: PayloadAction<'name' | 'price-low' | 'price-high' | 'rating'>) => {
       state.filters.sortBy = action.payload;
+      state.pagination.currentPage = 1;
+    },
+    setSearchTerm: (state, action: PayloadAction<string>) => {
+      state.filters.searchTerm = action.payload;
+      state.pagination.currentPage = 1;
     },
     clearFilters: (state) => {
       state.filters = {
@@ -54,6 +62,10 @@ const productSlice = createSlice({
         maxPrice: null,
         sortBy: 'name',
       };
+      state.pagination.currentPage = 1;
+    },
+    setCurrentPage: (state, action: PayloadAction<number>) => {
+      state.pagination.currentPage = action.payload;
     },
   },
   extraReducers: (builder) => {
@@ -74,7 +86,7 @@ const productSlice = createSlice({
   },
 });
 
-export const { setSearchTerm, setCategory, setPriceRange, setSortBy, clearFilters } = productSlice.actions;
+export const { setSearchTerm, setCategory, setPriceRange, setSortBy, clearFilters, setCurrentPage } = productSlice.actions;
 
 export default productSlice.reducer;
 

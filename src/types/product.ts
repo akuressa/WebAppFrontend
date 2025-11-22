@@ -22,5 +22,9 @@ export interface ProductState {
     maxPrice: number | null;
     sortBy: 'name' | 'price-low' | 'price-high' | 'rating';
   };
+  pagination: {
+    currentPage: number;
+    itemsPerPage: number;
+  };
 }
 

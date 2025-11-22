@@ -4,6 +4,7 @@ import { Product } from '../types/product';
 
 export const selectAllProducts = (state: RootState) => state.products.products;
 export const selectFilters = (state: RootState) => state.products.filters;
+export const selectPagination = (state: RootState) => state.products.pagination;
 
 export const selectFilteredAndSortedProducts = createSelector(
   [selectAllProducts, selectFilters],
@@ -67,4 +68,20 @@ export const selectPriceRange = createSelector([selectAllProducts], (products: P
     max: Math.max(...prices),
   };
 });
+
+export const selectPaginatedProducts = createSelector(
+  [selectFilteredAndSortedProducts, selectPagination],
+  (filteredProducts: Product[], pagination) => {
+    const startIndex = (pagination.currentPage - 1) * pagination.itemsPerPage;
+    const endIndex = startIndex + pagination.itemsPerPage;
+    return filteredProducts.slice(startIndex, endIndex);
+  }
+);
+
+export const selectTotalPages = createSelector(
+  [selectFilteredAndSortedProducts, selectPagination],
+  (filteredProducts: Product[], pagination) => {
+    return Math.ceil(filteredProducts.length / pagination.itemsPerPage);
+  }
+);
 
