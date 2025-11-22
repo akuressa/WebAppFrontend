@@ -80,13 +80,13 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product }) => {
         <div className="bg-white rounded-lg shadow-lg overflow-hidden">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 p-8">
             {/* Product Image */}
-            <div className="flex items-center justify-center bg-gray-100 rounded-lg p-8">
+            {/* <div className="flex items-center justify-center bg-gray-100 rounded-lg p-8">
               <img
                 src={product.image}
                 alt={product.title}
                 className="max-w-full max-h-96 object-contain"
               />
-            </div>
+            </div> */}
 
             {/* Product Details */}
             <div className="flex flex-col">

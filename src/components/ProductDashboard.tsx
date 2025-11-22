@@ -10,6 +10,7 @@ import {
   selectPriceRange,
 } from '../store/productSelectors';
 import ProductCard from './ProductCard';
+import ProductForm from './ProductForm';
 
 const ProductDashboard: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -29,6 +30,7 @@ const ProductDashboard: React.FC = () => {
   // UI state for showing/hiding filter and sort sections
   const [showFilters, setShowFilters] = useState<boolean>(false);
   const [showSort, setShowSort] = useState<boolean>(false);
+  const [showAddForm, setShowAddForm] = useState<boolean>(false);
 
   useEffect(() => {
     dispatch(getProducts());
@@ -234,6 +236,34 @@ const ProductDashboard: React.FC = () => {
                 </button>
               )}
             </div>
+
+            {/* Add Button */}
+            {/* <div className="ml-auto">
+              <button
+                onClick={() => {
+                  setShowAddForm(true);
+                  setShowFilters(false);
+                  setShowSort(false);
+                }}
+                className="flex items-center gap-2 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+                Add
+              </button>
+            </div> */}
           </div>
 
           {/* Filter Options Section */}
@@ -458,6 +488,14 @@ const ProductDashboard: React.FC = () => {
           </>
         )}
       </div>
+
+      {/* Product Form Modal */}
+      {showAddForm && (
+        <ProductForm
+          onClose={() => setShowAddForm(false)}
+          existingCategories={categories}
+        />
+      )}
     </div>
   );
 };
