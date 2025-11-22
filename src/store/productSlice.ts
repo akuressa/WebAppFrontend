@@ -6,6 +6,13 @@ const initialState: ProductState = {
   products: [],
   loading: false,
   error: null,
+  filters: {
+    searchTerm: '',
+    category: '',
+    minPrice: null,
+    maxPrice: null,
+    sortBy: 'name',
+  },
 };
 
 export const getProducts = createAsyncThunk(
@@ -25,7 +32,30 @@ export const getProducts = createAsyncThunk(
 const productSlice = createSlice({
   name: 'products',
   initialState,
-  reducers: {},
+  reducers: {
+    setSearchTerm: (state, action: PayloadAction<string>) => {
+      state.filters.searchTerm = action.payload;
+    },
+    setCategory: (state, action: PayloadAction<string>) => {
+      state.filters.category = action.payload;
+    },
+    setPriceRange: (state, action: PayloadAction<{ min: number | null; max: number | null }>) => {
+      state.filters.minPrice = action.payload.min;
+      state.filters.maxPrice = action.payload.max;
+    },
+    setSortBy: (state, action: PayloadAction<'name' | 'price-low' | 'price-high' | 'rating'>) => {
+      state.filters.sortBy = action.payload;
+    },
+    clearFilters: (state) => {
+      state.filters = {
+        searchTerm: '',
+        category: '',
+        minPrice: null,
+        maxPrice: null,
+        sortBy: 'name',
+      };
+    },
+  },
   extraReducers: (builder) => {
     builder
       .addCase(getProducts.pending, (state) => {
@@ -43,6 +73,8 @@ const productSlice = createSlice({
       });
   },
 });
+
+export const { setSearchTerm, setCategory, setPriceRange, setSortBy, clearFilters } = productSlice.actions;
 
 export default productSlice.reducer;
 

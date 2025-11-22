@@ -1,16 +1,74 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../store/store';
-import { getProducts } from '../store/productSlice';
+import { getProducts, setSearchTerm, setCategory, setPriceRange, setSortBy, clearFilters } from '../store/productSlice';
+import {
+  selectFilteredAndSortedProducts,
+  selectUniqueCategories,
+  selectPriceRange,
+} from '../store/productSelectors';
 import ProductCard from './ProductCard';
 
 const ProductDashboard: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { products, loading, error } = useSelector((state: RootState) => state.products);
+  const products = useSelector(selectFilteredAndSortedProducts);
+  const categories = useSelector(selectUniqueCategories);
+  const priceRange = useSelector(selectPriceRange);
+  const { loading, error, filters } = useSelector((state: RootState) => state.products);
+
+  // Local state for filter values (not applied until Apply button is clicked)
+  const [localCategory, setLocalCategory] = useState<string>('');
+  const [localMinPrice, setLocalMinPrice] = useState<string>('');
+  const [localMaxPrice, setLocalMaxPrice] = useState<string>('');
+  const [localSortBy, setLocalSortBy] = useState<'name' | 'price-low' | 'price-high' | 'rating'>('name');
+
+  // UI state for showing/hiding filter and sort sections
+  const [showFilters, setShowFilters] = useState<boolean>(false);
+  const [showSort, setShowSort] = useState<boolean>(false);
 
   useEffect(() => {
     dispatch(getProducts());
   }, [dispatch]);
+
+  // Initialize local state from Redux filters
+  useEffect(() => {
+    setLocalCategory(filters.category);
+    setLocalSortBy(filters.sortBy);
+    if (filters.minPrice !== null) {
+      setLocalMinPrice(filters.minPrice.toString());
+    } else {
+      setLocalMinPrice('');
+    }
+    if (filters.maxPrice !== null) {
+      setLocalMaxPrice(filters.maxPrice.toString());
+    } else {
+      setLocalMaxPrice('');
+    }
+  }, [filters]);
+
+  const handleApplyFilters = () => {
+    dispatch(setCategory(localCategory));
+    dispatch(setPriceRange({
+      min: localMinPrice === '' ? null : parseFloat(localMinPrice),
+      max: localMaxPrice === '' ? null : parseFloat(localMaxPrice),
+    }));
+    setShowFilters(false);
+  };
+
+  const handleApplySort = () => {
+    dispatch(setSortBy(localSortBy));
+    setShowSort(false);
+  };
+
+  const handleClearFilters = () => {
+    setLocalCategory('');
+    setLocalMinPrice('');
+    setLocalMaxPrice('');
+    setLocalSortBy('name');
+    dispatch(clearFilters());
+    setShowFilters(false);
+    setShowSort(false);
+  };
 
   if (loading) {
     return (
@@ -40,6 +98,49 @@ const ProductDashboard: React.FC = () => {
     );
   }
 
+  const hasActiveFilters =
+    filters.searchTerm ||
+    filters.category ||
+    filters.minPrice !== null ||
+    filters.maxPrice !== null ||
+    filters.sortBy !== 'name';
+
+  // Filter Icon SVG
+  const FilterIcon = () => (
+    <svg
+      className="w-5 h-5"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"
+      />
+    </svg>
+  );
+
+  // Sort Icon SVG
+  const SortIcon = () => (
+    <svg
+      className="w-5 h-5"
+      fill="none"
+      stroke="currentColor"
+      viewBox="0 0 24 24"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"
+      />
+    </svg>
+  );
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -48,14 +149,214 @@ const ProductDashboard: React.FC = () => {
             Product Dashboard
           </h1>
           <p className="text-gray-600">
-            Showing {products.length} products
+            Showing {products.length} product{products.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-          {products.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
+
+        {/* Search and Control Section */}
+        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+          {/* First Row: Search Input with Filter and Sort Buttons */}
+          <div className="flex items-end gap-4 mb-4">
+            {/* Search Input */}
+            <div className="flex-1 max-w-md">
+              <label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
+                Search Products
+              </label>
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
+                  <svg
+                    className="w-5 h-5 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                    />
+                  </svg>
+                </div>
+                <input
+                  id="search"
+                  type="text"
+                  placeholder="Search by name or category..."
+                  value={filters.searchTerm}
+                  onChange={(e) => dispatch(setSearchTerm(e.target.value))}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+            </div>
+
+            {/* Filter and Sort Buttons */}
+            <div className="flex gap-4 items-end">
+              <button
+                onClick={() => {
+                  setShowFilters(!showFilters);
+                  setShowSort(false);
+                }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                  showFilters
+                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                <FilterIcon />
+                Filters
+              </button>
+              <button
+                onClick={() => {
+                  setShowSort(!showSort);
+                  setShowFilters(false);
+                }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-colors ${
+                  showSort
+                    ? 'bg-blue-600 text-white hover:bg-blue-700'
+                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+              >
+                <SortIcon />
+                Sort
+              </button>
+              {hasActiveFilters && (
+                <button
+                  onClick={handleClearFilters}
+                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                >
+                  Clear All
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* Filter Options Section */}
+          {showFilters && (
+            <div className="border-t pt-4 mt-4">
+              <div className="flex flex-wrap items-end gap-4">
+                {/* Category Filter */}
+                <div className="flex-1 min-w-[150px] max-w-[200px]">
+                  <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-2">
+                    Category
+                  </label>
+                  <select
+                    id="category"
+                    value={localCategory}
+                    onChange={(e) => setLocalCategory(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="">All Categories</option>
+                    {categories.map((category) => (
+                      <option key={category} value={category}>
+                        {category.charAt(0).toUpperCase() + category.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Min Price */}
+                <div className="flex-1 min-w-[120px] max-w-[150px]">
+                  <label htmlFor="minPrice" className="block text-sm font-medium text-gray-700 mb-2">
+                    Min Price ($)
+                  </label>
+                  <input
+                    id="minPrice"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder={`Min: $${priceRange.min.toFixed(2)}`}
+                    value={localMinPrice}
+                    onChange={(e) => setLocalMinPrice(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                {/* Max Price */}
+                <div className="flex-1 min-w-[120px] max-w-[150px]">
+                  <label htmlFor="maxPrice" className="block text-sm font-medium text-gray-700 mb-2">
+                    Max Price ($)
+                  </label>
+                  <input
+                    id="maxPrice"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder={`Max: $${priceRange.max.toFixed(2)}`}
+                    value={localMaxPrice}
+                    onChange={(e) => setLocalMaxPrice(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                {/* Apply Button */}
+                <div className="flex-shrink-0">
+                  <button
+                    onClick={handleApplyFilters}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  >
+                    Apply Filters
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Sort Options Section */}
+          {showSort && (
+            <div className="border-t pt-4 mt-4">
+              <div className="flex items-end gap-4">
+                <div className="flex-1 min-w-[150px] max-w-[250px]">
+                  <label htmlFor="sort" className="block text-sm font-medium text-gray-700 mb-2">
+                    Sort By
+                  </label>
+                  <select
+                    id="sort"
+                    value={localSortBy}
+                    onChange={(e) =>
+                      setLocalSortBy(e.target.value as 'name' | 'price-low' | 'price-high' | 'rating')
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="name">Name (A-Z)</option>
+                    <option value="price-low">Price: Low to High</option>
+                    <option value="price-high">Price: High to Low</option>
+                    <option value="rating">Rating: Highest First</option>
+                  </select>
+                </div>
+                <div className="flex-shrink-0">
+                  <button
+                    onClick={handleApplySort}
+                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  >
+                    Apply Sort
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
+
+        {/* Products Grid */}
+        {products.length === 0 ? (
+          <div className="text-center py-12 bg-white rounded-lg shadow-md">
+            <p className="text-gray-600 text-lg">No products found matching your filters.</p>
+            {hasActiveFilters && (
+              <button
+                onClick={handleClearFilters}
+                className="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+              >
+                Clear Filters
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {products.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

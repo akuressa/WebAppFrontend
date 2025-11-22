@@ -15,5 +15,12 @@ export interface ProductState {
   products: Product[];
   loading: boolean;
   error: string | null;
+  filters: {
+    searchTerm: string;
+    category: string;
+    minPrice: number | null;
+    maxPrice: number | null;
+    sortBy: 'name' | 'price-low' | 'price-high' | 'rating';
+  };
 }
 
